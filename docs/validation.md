@@ -5,7 +5,7 @@ Recorded on **14 October 2026** for the initial Evolve pack.
 ## Package and tools
 
 - Package validator: six skills, valid metadata, portable references and helper syntax.
-- Local helper/installer suite: **57 tests passed** on macOS with Python **3.12.14**,
+- Local helper/installer suite: **60 tests passed** on macOS with Python **3.12.14**,
   including a run with resource warnings treated as errors.
 - Vercel Skills CLI local discovery: all six skills discovered using `add --list`;
   no installation into the user's agent directories was performed.
@@ -17,6 +17,10 @@ submodule freshness, overlapping evidence attempts, concurrent installer ownersh
 benchmark machine identity, and malformed state handling. They were repaired and
 covered by targeted regression checks in the passing suite. Executable modes and
 parent-directory symlink handling were also strengthened.
+
+The first remote matrix passed on Linux and macOS and exposed a Windows rooted-path
+validation defect. Explicit cross-platform path checks and three additional
+regressions repair that case; the complete local suite passes after the change.
 
 ## Live workflow trial
 

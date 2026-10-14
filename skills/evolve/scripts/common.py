@@ -31,10 +31,10 @@ def project_root(value: str = ".") -> Path:
 
 def relative_path(value: str) -> Path:
     # Reject both POSIX and Windows traversal even on a different host OS.
-    if not value or "\\" in value or ":" in value:
+    if not value or value.startswith("/") or "\\" in value or ":" in value:
         raise EvolveError("Use a non-empty project-relative path with forward slashes.")
     path = Path(value)
-    if path.is_absolute() or any(p in {".", ".."} for p in value.split("/")):
+    if path.is_absolute() or any(p in {"", ".", ".."} for p in value.split("/")):
         raise EvolveError("Paths must stay within the project; traversal is refused.")
     return path
 

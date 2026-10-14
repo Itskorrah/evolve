@@ -54,7 +54,7 @@ def check_path(path: Path) -> None:
 
 
 def child(root: Path, relative: str) -> Path:
-    if not relative or "\\" in relative or ":" in relative:
+    if not relative or relative.startswith("/") or "\\" in relative or ":" in relative:
         raise InstallError("Invalid managed relative path.")
     candidate = Path(relative)
     if candidate.is_absolute() or any(p in {"", ".", ".."} for p in relative.split("/")):
