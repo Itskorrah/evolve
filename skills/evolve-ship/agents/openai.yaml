@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evolve Ship"
+  short_description: "Deliver verified changes within authorised GitHub scope"
+  default_prompt: "Use $evolve-ship to deliver this verified change at the level I have authorised."

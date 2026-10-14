@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evolve Audit"
+  short_description: "Investigate faults and rank evidence-backed improvements"
+  default_prompt: "Use $evolve-audit to investigate this repository and produce verified, prioritised findings."

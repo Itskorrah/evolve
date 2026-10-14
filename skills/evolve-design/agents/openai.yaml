@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evolve Design"
+  short_description: "Improve real product flows, accessibility and interfaces"
+  default_prompt: "Use $evolve-design to investigate and implement a verified usability improvement in this application."
