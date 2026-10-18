@@ -215,10 +215,22 @@ for four checkable workloads and paired model comparisons.
 
 ## Develop the pack
 
+Run both standard-library checks locally without GitHub Actions:
+
+```sh
+python3 scripts/check.py
+```
+
+Or run each command separately for narrower diagnosis:
+
 ```sh
 python3 scripts/validate.py
 python3 -m unittest discover -s tests -v
 ```
+
+The offline runner reports a failed or empty test discovery as a failure. It
+uses your current interpreter and operating system; it does not imply other
+Python versions, agent hosts or platforms were tested.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for changes and behavioural evaluation.
 The [architecture guide](docs/architecture.md) explains the package structure.

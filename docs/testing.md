@@ -55,3 +55,12 @@ The standalone `verify` checks managed bytes and compares source payloads; it
 does not certify native skill discovery. Run real agent-host and device/browser
 checks separately. Workload comparison instructions are under
 [tests/evaluations](../tests/evaluations/README.md).
+
+## Offline one-command checks
+
+Run `python3 scripts/check.py` directly from a trusted checkout to run
+`scripts/validate.py` and the unittest suite without relying on GitHub
+Actions. It fails if either command fails or discovery runs no tests, and does
+not install dependencies, call model providers or modify other repositories.
+This verifies only the current environment; compatibility with other Python
+versions and operating systems requires separate executions.
