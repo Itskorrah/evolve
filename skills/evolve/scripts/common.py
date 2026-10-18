@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import stat
 import re
 import signal
 import subprocess
@@ -46,6 +47,13 @@ def managed_path(root: Path, relative: str) -> Path:
         current = current / part
         if current.is_symlink():
             raise EvolveError(f"Symlink in managed path: {current}")
+        try:
+            attributes = getattr(current.lstat(), "st_file_attributes", 0)
+        except FileNotFoundError:
+            continue
+        # Older Windows Pythons do not expose all junctions via is_symlink().
+        if attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
+            raise EvolveError(f"Reparse point in managed path: {current}")
     return path
 
 
