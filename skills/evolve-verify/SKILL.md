@@ -34,6 +34,16 @@ using this procedure and explicitly identify missing freshness guards.
 6. Render a verdict: accepted, changes required, or blocked by missing evidence.
    State exactly which criteria passed, failed or remain unverified.
 
+**Evidence categories:** for every requested criterion, record `pass`, `fail`,
+`not_run` or `blocked`, the final revision and the evidence type: executed
+command, inspected assertion, live interaction, screenshot or manual acceptance.
+A generated assertion is **not** an executed test. A screenshot is a static
+state, not evidence of keyboard, touch or recovery interactions. Lack of a
+browser/host means `not_run`, not pass. If any required criterion is not
+actually accepted, report a blocked or changes-required verdict; do not silently
+upgrade a proxy test to a real-world acceptance result.
+
+
 Use a fresh-context reviewer when the host provides one, but do not spawn nested
 reviewers indefinitely. Review reports must be vetted. Any source change after
 verification invalidates affected results and requires relevant rechecks. Never
