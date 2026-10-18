@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+from unittest.mock import patch
 
 from support import RepositoryTest, call_main
 import install
@@ -170,3 +171,23 @@ class InstallationTests(RepositoryTest):
             self.skipTest("Junction creation unavailable")
         self.assertEqual(self.invoke()[0], 2)
         self.assertEqual(list(outside.iterdir()), [])
+
+    def test_verify_distinguishes_unchanged_old_payload_from_changed_checkout(self):
+        self.invoke()
+        original = install.source_files
+
+        def updated_source(name):
+            files = original(name)
+            if name == "evolve-build":
+                files["SKILL.md"] += b"\\n<!-- new upstream skill contents -->\\n"
+            return files
+
+        with patch.object(install, "source_files", side_effect=updated_source):
+            code, report = self.invoke("verify")
+            self.assertEqual(code, 0)
+            self.assertEqual(report["integrity"], "verified")
+            self.assertEqual(report["outdated"], ["evolve-build"])
+            self.assertFalse(report["source_matches"]["evolve-build"])
+            self.assertEqual(self.invoke("install", "--skill", "evolve-build")[0], 0)
+            self.assertEqual(self.invoke("verify")[1]["outdated"], [])
+        self.assertEqual(self.invoke("verify")[1]["outdated"], ["evolve-build"])
