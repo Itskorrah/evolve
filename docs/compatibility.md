@@ -82,3 +82,7 @@ separates `integrity: verified` (recorded managed bytes are unedited) from
 `outdated` (source pack bytes differ). It does not invoke a host. Errors such
 as modified files, unsafe paths or malformed checksums fail with exit code 2.
 Windows junctions and other reparse points are refused even on Python 3.10/3.11.
+
+Managed cleanup removes only directories belonging to removed managed files.
+User-created empty directories inside a skill folder are retained across
+updates and uninstallation (alongside user-created files).

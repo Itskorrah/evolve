@@ -37,3 +37,11 @@ application source. Local edits are not overwritten. On a damaged installation,
 back up customisations, confirm no writer remains, and re-install from a reviewed
 source. The pack cannot grant push/merge/billing/deployment rights. Keep raw
 agent evidence and secrets private; publish only sanitised summaries.
+
+### Further maintenance finding
+
+Installer cleanup previously removed user-owned empty directories during repeat
+installation and uninstall. It now prunes only parent folders of removed managed
+files, with regression tests. Local reproduction and targeted Linux/Python 3.13
+contract tests established the before/after behaviour; native Windows/macOS
+verification of this increment remains unrun.

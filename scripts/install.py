@@ -171,15 +171,19 @@ def atomic_write(path: Path, content: bytes) -> None:
             os.unlink(temporary)
 
 
-def prune(folder: Path) -> None:
-    if not folder.exists():
-        return
-    directories = sorted((p for p in folder.rglob("*") if p.is_dir()), key=lambda p: len(p.parts), reverse=True)
-    for path in [*directories, folder]:
+def prune(folder: Path, removed: set[str]) -> None:
+    """Prune only parents of removed managed files, never user-created folders."""
+    directories: set[Path] = set()
+    for relative in removed:
+        parent = Path(relative).parent
+        while parent != Path("."):
+            directories.add(child(folder, parent.as_posix()))
+            parent = parent.parent
+    for path in [*sorted(directories, key=lambda p: len(p.parts), reverse=True), folder]:
         try:
             path.rmdir()
         except OSError:
-            pass  # Keep any user-added files and their parent directories.
+            pass  # User additions and nonempty managed folders remain intact.
 
 
 def operate(args) -> dict:
@@ -249,7 +253,7 @@ def operate_locked(args, target: Path) -> dict:
             path = child(target, f"{name}/{relative}")
             if path.exists():
                 path.unlink()
-        prune(child(target, name))
+        prune(child(target, name), removed)
     if args.action == "install":
         manifest["pack_version"] = PACK_VERSION
     manifest_path = child(target, MANIFEST)

@@ -77,6 +77,20 @@ class InstallationTests(RepositoryTest):
         self.assertFalse((self.target / "evolve/SKILL.md").exists())
         self.assertFalse((self.target / install.MANIFEST).exists())
 
+    def test_uninstall_preserves_user_created_empty_directories(self):
+        self.invoke()
+        (self.target / "evolve/my-empty-folder").mkdir()
+        (self.target / "evolve/nested/empty-folder").mkdir(parents=True)
+        self.assertEqual(self.invoke("uninstall")[0], 0)
+        self.assertTrue((self.target / "evolve/my-empty-folder").is_dir())
+        self.assertTrue((self.target / "evolve/nested/empty-folder").is_dir())
+
+    def test_update_preserves_user_created_empty_directories(self):
+        self.invoke()
+        (self.target / "evolve/my-empty-folder").mkdir()
+        self.assertEqual(self.invoke("install")[0], 0)
+        self.assertTrue((self.target / "evolve/my-empty-folder").is_dir())
+
     def test_coordinator_cannot_be_removed_before_remaining_specialists(self):
         self.invoke()
         self.assertEqual(self.invoke("uninstall", "--skill", "evolve")[0], 2)
