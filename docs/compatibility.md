@@ -54,3 +54,35 @@ Static checks validate metadata, links and syntax. Unit/integration tests exerci
 helpers and installation behaviour. Behavioural evaluations test agent decisions
 in a specific session. None of those alone establishes universal host compatibility.
 Read [testing](testing.md) for the actual validation record and evaluation method.
+
+## Host integration evidence (19 October 2026)
+
+| Host | Integration route | Native invocation | Live verification |
+| --- | --- | --- | --- |
+| Codex | Bundled `--host codex` to `.agents/skills/` | `$evolve` according to host's skill discovery | Not exercised in this PR |
+| Claude Code | Bundled `--host claude` to `.claude/skills/` | `/evolve` according to host's skill discovery | Not exercised in this PR |
+| Cursor | `--host portable --target ...` | Do not assume native discovery; load `SKILL.md` explicitly | Not exercised |
+| OpenCode | `--host portable --target ...` | Verify discovered native path for the installed version, or load file explicitly | Not exercised |
+| Antigravity/other | `--host portable --target ...` | Explicit file and host tool permissions only | Not exercised |
+
+Bundled Python install tests run on CI's Linux/macOS/Windows Python 3.10/3.13
+matrix. They do **not** demonstrate agent host skill loading, background agent
+execution or UI behaviour. The pack installs no hooks, changes no settings and
+grants no repository permission. Native discovery must be tested within each
+actual host/version; explicit-file guidance is a portability fallback.
+
+Primary references: [OpenAI Agent Skills](https://developers.openai.com/api/docs/guides/tools-skills),
+[Claude Code Skills](https://code.claude.com/docs/en/skills),
+[OpenCode Skills](https://opencode.ai/docs/skills/).
+
+## Verify a managed installation
+
+Use `python scripts/install.py verify --target "/path/to/skills"`. The result
+separates `integrity: verified` (recorded managed bytes are unedited) from
+`outdated` (source pack bytes differ). It does not invoke a host. Errors such
+as modified files, unsafe paths or malformed checksums fail with exit code 2.
+Windows junctions and other reparse points are refused even on Python 3.10/3.11.
+
+Managed cleanup removes only directories belonging to removed managed files.
+User-created empty directories inside a skill folder are retained across
+updates and uninstallation (alongside user-created files).

@@ -139,6 +139,12 @@ Deliver focused changes with problem, resulting behaviour and relevant evidence.
 Validate the current PR head, required checks, reviews and merge conditions. Honour
 branch protections. Do not treat PR creation as completion of a merge request.
 
+For a substantial handoff, optionally adapt [product status](templates/product-status.md)
+into the application's existing status document or `PRODUCT_STATUS.md`. Distinguish
+implemented code, executed checks, real-world acceptance, released changes,
+external blockers and up to three ranked next actions. Skip this extra file for
+small fixes; do not treat saved delivery state as new permission.
+
 Record implementation and delivery separately. Update affected project docs and
 the private ledger. Refresh the queue from what the change revealed, then start
 the next highest-value eligible task. Do not stop after the first useful patch

@@ -42,3 +42,16 @@ Distinguish package validation, helper tests, actual agent trial outcomes and
 host-specific live sessions. If a tool test passes but a workflow trial fails,
 repair the demonstrated behaviour and repeat the relevant evaluation. Prefer
 targeted corrections over accumulating generic instructions.
+
+## Installer integrity command
+
+```sh
+python scripts/install.py install --target "/tmp/evolve skills"
+python scripts/install.py verify --target "/tmp/evolve skills"
+python scripts/install.py uninstall --target "/tmp/evolve skills"
+```
+
+The standalone `verify` checks managed bytes and compares source payloads; it
+does not certify native skill discovery. Run real agent-host and device/browser
+checks separately. Workload comparison instructions are under
+[tests/evaluations](../tests/evaluations/README.md).

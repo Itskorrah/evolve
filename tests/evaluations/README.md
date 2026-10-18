@@ -50,3 +50,51 @@ authorisation and check actual remote results rather than fabricate them.
 
 Score each as achieved, partial or failed with artifact references. Record unexpected
 failure modes and fix them narrowly. A documented rubric is not a passing evaluation.
+
+## Reproducible workload matrix
+
+Use `--scenario bug|ui|refactor|shipping` with the existing fixture generator
+(default: `bug`), and a distinct, previously non-existent `--output` for
+each run.
+
+```sh
+python3 tests/evaluations/make_fixture.py --scenario ui --output "/tmp/evolve-ui"
+python3 tests/evaluations/make_fixture.py --scenario refactor --output "/tmp/evolve-refactor"
+python3 tests/evaluations/make_fixture.py --scenario shipping --output "/tmp/evolve-shipping"
+```
+
+The **bug** scenario exposes quantity/CSV problems with thin smoke tests;
+**ui** is a deliberately low-contrast, unlabelled, falsely successful form
+requiring browser and keyboard testing; **refactor** duplicates monetary
+calculations that must retain API contracts; **shipping** has an offline
+Git repository without a remote and tests release authorisation boundaries.
+These fixtures are synthetic reference tasks, not evidence that an agent
+can successfully solve them.
+
+Run each task with and without Evolve from matching clean starting commits.
+Keep model/host/request/tools/environment as consistent as possible; vary
+run order and evaluate raw diffs independently. Record each check as a keyed
+object with `status` (`pass`, `fail`, `not_run`) and an `evidence`
+reference for executed checks. The comparator requires matching `scenario`,
+`host`, `model`, `starting_revision` and check names. Optional actual
+`tokens`: `{"input": 1200, "output": 400}` (or null when unmetered).
+
+Example minimal JSON record (replace values with **actual** evidence):
+```json
+{
+  "scenario": "bug",
+  "host": "recorded-host",
+  "model": "recorded-model",
+  "starting_revision": "recorded-commit",
+  "checks": {"regression": {"status": "not_run"}},
+  "tokens": null
+}
+```
+
+```sh
+python3 tests/evaluations/compare_runs.py --without without.json --with-evolve with.json
+```
+
+The output contrasts reported check outcomes and measured token deltas when
+both are provided. It is **not** a paid agent runner, automatic judge, proof of
+causality or substitute for inspecting code, assertions and runtime interactions.

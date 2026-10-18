@@ -23,6 +23,10 @@ resources are absent. Use available Git/hosting tools; never invent remote statu
 2. Require completed acceptance checks and an inspected diff. Re-run affected
    checks after integration or edits. Inspect staged files for credentials, raw
    private evidence, generated noise and unexpected changes.
+   Report each required check on the final diff as observed `pass`, observed
+   `fail`, or `not_run`. An unexecuted test file, unchecked screenshot or
+   older revision's green CI is not passing evidence. Never merge on this basis.
+
 3. Commit focused verified changes when authorised. Push normally to the intended
    branch/remote. Never force-push or overwrite another contributor's work.
 4. For PR delivery, describe the problem, resulting behaviour, validation and

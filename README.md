@@ -195,6 +195,24 @@ The installer tracks owned files and refuses to overwrite locally edited or
 unmanaged installations. It preserves unrelated skills and user-added files.
 Installation does not alter agent configuration, permissions or model settings.
 
+## Check installation integrity
+
+```sh
+python3 scripts/install.py verify --host codex --project "/path/to/your-app"
+```
+
+`verify` is read-only: it hashes installed files against the ownership manifest
+and reports source drift as `outdated` without overwriting user edits. It does
+**not** execute a skill in the target host. The development branch records
+`0.2.0-dev` as an informational pack version, **not** a published release.
+After updating the checkout, repeat `install` to upgrade (edited files are
+refused rather than silently overwritten). The installer blocks Windows
+junction/reparse-point paths as well as symbolic links.
+
+See [product status](PRODUCT_STATUS.md) for implemented versus verified versus
+released capabilities and [reference evaluations](tests/evaluations/README.md)
+for four checkable workloads and paired model comparisons.
+
 ## Develop the pack
 
 ```sh
