@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import os
+import stat
 from pathlib import Path
 import sys
 import tempfile
@@ -15,6 +16,7 @@ PACK_ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ("evolve", "evolve-audit", "evolve-build", "evolve-design", "evolve-verify", "evolve-ship")
 MANIFEST = ".evolve-install.json"
 PACK_ID = "Itskorrah/evolve"
+PACK_VERSION = "0.2.0-dev"  # Package revision; not a published release tag.
 
 
 class InstallError(Exception):
@@ -51,6 +53,14 @@ def check_path(path: Path) -> None:
     for item in (path, *path.parents):
         if item.is_symlink():
             raise InstallError(f"Symlink in installation path: {item}")
+        try:
+            attributes = getattr(item.lstat(), "st_file_attributes", 0)
+        except FileNotFoundError:
+            continue
+        # On Windows, directory junctions and other reparse points are not all
+        # reported by is_symlink(), particularly on Python 3.10/3.11.
+        if attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
+            raise InstallError(f"Reparse point in installation path: {item}")
 
 
 def child(root: Path, relative: str) -> Path:
@@ -100,12 +110,17 @@ def read_manifest(target: Path) -> dict:
         raise InstallError("Installation manifest is unreadable; preserve it before recovery.") from error
     if not isinstance(data, dict) or data.get("version") != 1 or data.get("pack") != PACK_ID or not isinstance(data.get("skills"), dict):
         raise InstallError("Unknown installation manifest; refusing to adopt files.")
+    revision = data.get("pack_version")
+    if revision is not None and (not isinstance(revision, str) or not revision.strip()):
+        raise InstallError("Invalid pack version in manifest.")
     for name, files in data["skills"].items():
         if name not in SKILLS or not isinstance(files, dict):
             raise InstallError("Invalid skill ownership in manifest.")
         for relative, checksum in files.items():
             child(target, f"{name}/{relative}")
-            if not isinstance(checksum, str) or len(checksum) != 64:
+            if not isinstance(checksum, str) or len(checksum) != 64 or any(
+                character not in "0123456789abcdef" for character in checksum.lower()
+            ):
                 raise InstallError("Invalid file checksum in manifest.")
     return data
 
@@ -116,8 +131,7 @@ def source_files(name: str) -> dict[str, bytes]:
         raise InstallError(f"Source skill is missing: {name}")
     files = {}
     for path in sorted(source.rglob("*")):
-        if path.is_symlink():
-            raise InstallError(f"Symlink in skill source: {path}")
+        check_path(path)
         if "__pycache__" in path.parts or path.suffix in {".pyc", ".pyo"}:
             continue
         if path.is_file():
@@ -132,8 +146,7 @@ def verify_owned(target: Path, name: str, owned: dict, uninstall: bool) -> None:
         if not folder.is_dir():
             raise InstallError(f"Skill path is not a directory: {name}")
         for path in folder.rglob("*"):
-            if path.is_symlink():
-                raise InstallError(f"Symlink in installed skill: {path}")
+            check_path(path)
     for relative, checksum in owned.items():
         path = child(target, f"{name}/{relative}")
         if not path.exists():
@@ -171,7 +184,7 @@ def prune(folder: Path) -> None:
 
 def operate(args) -> dict:
     target = target_for(args)
-    if args.dry_run:
+    if args.dry_run or args.action == "verify":
         return operate_locked(args, target)
     with InstallLock(target):
         return operate_locked(args, target)
@@ -182,6 +195,8 @@ def operate_locked(args, target: Path) -> dict:
     selected = list(dict.fromkeys(args.skill or (SKILLS if args.action == "install" else manifest["skills"])))
     if args.action == "install" and "evolve" not in selected:
         selected.insert(0, "evolve")
+    if args.action == "verify" and not selected:
+        raise InstallError("No installed skills to verify.")
     if args.action == "uninstall" and "evolve" in selected:
         remaining = set(manifest["skills"]) - set(selected)
         if remaining:
@@ -190,19 +205,31 @@ def operate_locked(args, target: Path) -> dict:
     for name in selected:
         folder = child(target, name)
         owned = manifest["skills"].get(name)
-        if args.action == "uninstall" and owned is None:
+        if args.action in {"uninstall", "verify"} and owned is None:
             raise InstallError(f"Skill is not owned by this installation: {name}")
         if args.action == "install" and folder.exists() and owned is None:
             raise InstallError(f"Unmanaged skill folder exists: {name}; refusing to overwrite it.")
         verify_owned(target, name, owned or {}, args.action == "uninstall")
-        if args.action == "install":
+        if args.action in {"install", "verify"}:
             payload[name] = source_files(name)
-            for relative in payload[name]:
-                path = child(target, f"{name}/{relative}")
-                if path.exists() and relative not in (owned or {}):
-                    raise InstallError(f"A user-added file conflicts with new release content: {name}/{relative}")
+            if args.action == "install":
+                for relative in payload[name]:
+                    path = child(target, f"{name}/{relative}")
+                    if path.exists() and relative not in (owned or {}):
+                        raise InstallError(f"A user-added file conflicts with new release content: {name}/{relative}")
     result = {"action": args.action, "target": str(target), "skills": selected,
-              "dry_run": args.dry_run, "files": sum(len(v) for v in payload.values())}
+              "dry_run": args.dry_run, "files": sum(len(v) for v in payload.values()),
+              "installed_pack_version": manifest.get("pack_version"),
+              "source_pack_version": PACK_VERSION}
+    if args.action == "verify":
+        source_matches = {
+            name: manifest["skills"][name] == {
+                relative: digest(data) for relative, data in payload[name].items()
+            } for name in selected
+        }
+        result.update({"integrity": "verified", "source_matches": source_matches,
+                       "outdated": [name for name, matches in source_matches.items() if not matches]})
+        return result
     if args.dry_run or not selected:
         return result
     target.mkdir(parents=True, exist_ok=True)
@@ -223,6 +250,8 @@ def operate_locked(args, target: Path) -> dict:
             if path.exists():
                 path.unlink()
         prune(child(target, name))
+    if args.action == "install":
+        manifest["pack_version"] = PACK_VERSION
     manifest_path = child(target, MANIFEST)
     if manifest["skills"]:
         atomic_write(manifest_path, (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode())
@@ -233,7 +262,7 @@ def operate_locked(args, target: Path) -> dict:
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("action", choices=("install", "uninstall"))
+    p.add_argument("action", choices=("install", "verify", "uninstall"))
     p.add_argument("--host", choices=("codex", "claude", "agents", "portable"), default="codex")
     p.add_argument("--scope", choices=("project", "global"), default="project")
     p.add_argument("--project")

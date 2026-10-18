@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import subprocess
+import sys
 
 from support import RepositoryTest, call_main
 import install
@@ -101,3 +103,70 @@ class InstallationTests(RepositoryTest):
         code, result = call_main(install.main, ["install", "--host", "codex", "--project", str(self.root), "--dry-run"])
         self.assertEqual(code, 0)
         self.assertEqual(Path(result["target"]), self.root / ".agents/skills")
+
+    def test_verify_is_read_only_and_reports_source_match(self):
+        self.invoke()
+        manifest_path = self.target / install.MANIFEST
+        before = manifest_path.read_bytes()
+        code, report = self.invoke("verify")
+        self.assertEqual(code, 0)
+        self.assertEqual(report["integrity"], "verified")
+        self.assertEqual(report["source_pack_version"], install.PACK_VERSION)
+        self.assertEqual(report["installed_pack_version"], install.PACK_VERSION)
+        self.assertEqual(report["outdated"], [])
+        self.assertEqual(len(report["source_matches"]), len(install.SKILLS))
+        self.assertTrue(all(report["source_matches"].values()))
+        self.assertEqual(manifest_path.read_bytes(), before)
+        self.assertFalse((self.target / ".evolve-install.lock").exists())
+
+    def test_verify_detects_outdated_source_without_writing(self):
+        self.invoke()
+        path = self.target / install.MANIFEST
+        before = path.read_bytes()
+        old = install.PACK_VERSION
+        try:
+            install.PACK_VERSION = "new-package-not-yet-installed"
+            code, report = self.invoke("verify")
+            self.assertEqual(code, 0)
+            self.assertEqual(report["installed_pack_version"], old)
+            self.assertEqual(report["source_pack_version"], install.PACK_VERSION)
+            self.assertEqual(report["outdated"], [])  # source bytes still match
+        finally:
+            install.PACK_VERSION = old
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_verify_rejects_tampered_installed_file(self):
+        self.invoke()
+        (self.target / "evolve/SKILL.md").write_text("edited locally", encoding="utf-8")
+        code, result = self.invoke("verify")
+        self.assertEqual(code, 2)
+        self.assertIn("Locally edited", result["error"])
+
+    def test_verify_rejects_unknown_installation(self):
+        code, result = self.invoke("verify")
+        self.assertEqual(code, 2)
+        self.assertIn("No installed skills", result["error"])
+        self.assertFalse(self.target.exists())
+
+    def test_invalid_hex_checksum_rejected_before_removal(self):
+        self.invoke()
+        manifest = self.target / install.MANIFEST
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        data["skills"]["evolve"]["SKILL.md"] = "x" * 64
+        manifest.write_text(json.dumps(data), encoding="utf-8")
+        code, result = self.invoke("uninstall")
+        self.assertEqual(code, 2)
+        self.assertIn("checksum", result["error"])
+        self.assertTrue((self.target / "evolve/SKILL.md").exists())
+
+    def test_windows_junction_target_is_refused(self):
+        if sys.platform != "win32":
+            self.skipTest("Windows junction contract")
+        outside = self.root / "outside-junction"
+        outside.mkdir()
+        process = subprocess.run(["cmd", "/c", "mklink", "/J", str(self.target), str(outside)],
+                                 capture_output=True, text=True)
+        if process.returncode:
+            self.skipTest("Junction creation unavailable")
+        self.assertEqual(self.invoke()[0], 2)
+        self.assertEqual(list(outside.iterdir()), [])
