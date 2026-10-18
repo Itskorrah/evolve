@@ -17,7 +17,9 @@ class EvaluationHarnessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as parent:
             for scenario in ("bug", "ui", "refactor", "shipping"):
                 with self.subTest(scenario=scenario):
-                    target = Path(parent) / f"{scenario} project"
+                    # macOS may expose /var as a symlink to /private/var;
+                    # exercise the fixture's real resolved temp path.
+                    target = Path(parent).resolve() / f"{scenario} project"
                     generated = subprocess.run(
                         [sys.executable, str(FIXTURE), "--scenario", scenario, "--output", str(target)],
                         capture_output=True, text=True, encoding="utf-8")
