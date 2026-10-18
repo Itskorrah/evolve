@@ -45,3 +45,10 @@ installation and uninstall. It now prunes only parent folders of removed managed
 files, with regression tests. Local reproduction and targeted Linux/Python 3.13
 contract tests established the before/after behaviour; native Windows/macOS
 verification of this increment remains unrun.
+
+### Follow-up security hardening
+
+The optional ledger's managed file guard now detects Windows junctions/reparse
+points as well as ordinary symbolic links. A platform-independent regression
+simulates the Windows attribute contract; native Windows verification remains
+an external validation item, not a completed host certification.

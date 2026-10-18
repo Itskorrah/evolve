@@ -86,3 +86,8 @@ Windows junctions and other reparse points are refused even on Python 3.10/3.11.
 Managed cleanup removes only directories belonging to removed managed files.
 User-created empty directories inside a skill folder are retained across
 updates and uninstallation (alongside user-created files).
+
+The evidence ledger's `.evolve/` managed paths also reject Windows directory
+junctions and other reparse points, including interpreter versions before
+`Path.is_junction`. Tests simulate the Windows file-attribute contract on
+other systems; native Windows trials are still separately required.

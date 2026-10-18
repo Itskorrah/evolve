@@ -1,4 +1,7 @@
 from pathlib import Path, PureWindowsPath
+import stat
+import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -24,3 +27,32 @@ class PortablePathTests(unittest.TestCase):
         with patch.object(install, "Path", PureWindowsPath):
             with self.assertRaises(install.InstallError):
                 install.child(Path("ordinary-root"), "/outside")
+
+    def test_evidence_managed_path_rejects_simulated_windows_junction(self):
+        # Simulates the Windows st_file_attributes contract on Linux/macOS too.
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            (root / "redirect").mkdir()
+            original = Path.lstat
+
+            def mocked_lstat(path, *args, **kwargs):
+                info = original(path, *args, **kwargs)
+                if path.name == "redirect":
+                    return SimpleNamespace(
+                        st_mode=info.st_mode,
+                        st_file_attributes=stat.FILE_ATTRIBUTE_REPARSE_POINT,
+                    )
+                return info
+
+            with patch.object(Path, "lstat", mocked_lstat):
+                with self.assertRaisesRegex(common.EvolveError, "Reparse point"):
+                    common.managed_path(root, "redirect/state.json")
+
+    def test_evidence_managed_path_still_allows_normal_directories(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            root = Path(workspace)
+            (root / ".evolve").mkdir()
+            self.assertEqual(
+                common.managed_path(root, ".evolve/state.json"),
+                root / ".evolve/state.json",
+            )
