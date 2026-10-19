@@ -18,6 +18,17 @@ Understand → Baseline → Investigate → Prioritise
 The aim is completed, trustworthy engineering work: working features, repaired
 bugs, simpler code, better interfaces, and measured improvements.
 
+
+## Use with Codex — copy-and-paste workflows
+
+Open the **target project** in Codex and paste the prompt below. Codex should inspect [Evolve](https://github.com/Itskorrah/evolve), set up or reuse only the relevant integration, verify it and **execute** the workflow—not just print installation commands. Installation does not by itself grant permissions for unrelated projects or services.
+
+```text
+In my currently open Codex project, set up and use https://github.com/Itskorrah/evolve. Read the latest upstream README, skill entry points and prompts/codex/setup-and-run.md. Preserve existing work, inspect any installed skills, and prefer project-local setup. Install the Evolve coordinator and its five specialists into the currently open application project using the source repository's supported Codex project installer (Python 3.10+; prefer a reviewed local checkout). Verify integrity using its documented doctor/validation helpers. Invoke `$evolve` for an evidence-led audit of correctness, reliability, performance and UX, implement the highest-impact justified improvement, run meaningful tests, and continue through further worthwhile work while time permits. Use `.evolve/` for ignored state and respect the target application's stack. Confirm all six skills are present, read the installed `evolve/SKILL.md` and run the applicable installer integrity checks; validate tests and existing functionality after changes. Run feasible local verification. For verified scoped changes, commit to a feature branch, push, open a PR and merge where permitted; respect branch protection and security, never force-push or bypass required checks. Do not rely on GitHub Actions or incur costs. Report actual evidence and blockers.
+```
+
+More copyable workflows: [full setup and run](prompts/codex/setup-and-run.md) · [update an installation](prompts/codex/update.md) · [resume](prompts/codex/resume.md) · [extended autonomous execution](prompts/codex/autonomous.md).
+
 ## Start here
 
 Clone the pack and install it into the application you want to improve. The
